@@ -1,6 +1,4 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
-import { useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, CalendarCheck, Users, Bell, Search,
   ChevronDown, LogOut, Menu, TrendingUp, Clock, CheckCircle,
@@ -8,6 +6,7 @@ import {
 } from "lucide-react";
 import InboxPanel from "@/components/dashboard/InboxPanel";
 import VisitorAlerts from "@/components/dashboard/VisitorAlerts";
+import { bookingStore, visitorStore } from "@/lib/firebaseStore";
 import { listBookingsFromFirebase } from "@/lib/firebaseStore";
 
 // ─── NAV ────────────────────────────────────────────────────────────────────
@@ -59,6 +58,8 @@ function BookingsPanel({ compact }) {
   const load = async () => {
     setLoading(true);
     try {
+      const docs = await bookingStore.list();
+      setBookings(docs);
       const firebaseBookings = await listBookingsFromFirebase();
       if (firebaseBookings.length) {
         setBookings(firebaseBookings);
@@ -73,7 +74,7 @@ function BookingsPanel({ compact }) {
   useEffect(() => { load(); }, []);
 
   const updateStatus = async (id, status) => {
-    await base44.entities.Booking.update(id, { status });
+    await bookingStore.update(id, { status });
     setBookings(prev => prev.map(b => b.id === id ? { ...b, status } : b));
   };
 
@@ -182,7 +183,7 @@ function VisitorsPanel({ compact }) {
 
   const load = () => {
     setLoading(true);
-    base44.entities.Visitor.list("-created_date", 200).then(d => { setVisitors(d); setLoading(false); });
+    visitorStore.list().then(d => { setVisitors(d); setLoading(false); });
   };
   useEffect(() => { load(); }, []);
 
@@ -195,17 +196,17 @@ function VisitorsPanel({ compact }) {
 
   const handleAdd = async () => {
     setSaving(true);
-    await base44.entities.Visitor.create(form);
+    await visitorStore.create(form);
     setSaving(false); setShowAdd(false);
     setForm({full_name:"",email:"",phone:"",card_name:"",card_last4:"",card_type:"Visa",online_status:"offline",country:"",notes:""});
     load();
   };
   const handleDelete = async id => {
-    await base44.entities.Visitor.delete(id);
+    await visitorStore.delete(id);
     setVisitors(prev=>prev.filter(v=>v.id!==id));
   };
   const updateStatus = async (id,status) => {
-    await base44.entities.Visitor.update(id,{online_status:status});
+    await visitorStore.update(id,{online_status:status});
     setVisitors(prev=>prev.map(v=>v.id===id?{...v,online_status:status}:v));
   };
 
@@ -390,15 +391,11 @@ export default function Dashboard() {
   const [collapsed, setCollapsed] = useState(false);
   const [bookings, setBookings] = useState([]);
   const [visitors, setVisitors] = useState([]);
-  const navigate = useNavigate();
 
   useEffect(() => {
-    base44.auth.me().then(u => {
-      if (!u || u.role !== "admin") navigate("/");
-      else setUser(u);
-    });
-    base44.entities.Booking.list("-created_date",200).then(setBookings).catch(()=>{});
-    base44.entities.Visitor.list("-created_date",200).then(setVisitors).catch(()=>{});
+    setUser({ full_name: "Admin" });
+    bookingStore.list().then(setBookings).catch(()=>{});
+    visitorStore.list().then(setVisitors).catch(()=>{});
   }, []);
 
   if (!user) return (
@@ -451,7 +448,7 @@ export default function Dashboard() {
                 <div className="text-[#1A202C] text-xs font-semibold truncate">{user.full_name}</div>
                 <div className="text-[#A0AEC0] text-[10px] truncate">{user.email}</div>
               </div>
-              <button onClick={()=>base44.auth.logout("/")} className="text-[#A0AEC0] hover:text-red-400 transition-colors">
+              <button onClick={()=>window.location.assign("/")} className="text-[#A0AEC0] hover:text-red-400 transition-colors">
                 <LogOut className="w-4 h-4"/>
               </button>
             </>

@@ -5,8 +5,8 @@ import {
   CheckCircle, Hotel, ChevronDown, CreditCard, Lock, ChevronLeft,
   RefreshCw, Film
 } from "lucide-react";
-import { base44 } from "@/api/base44Client";
 import { updateVisitorFromBooking } from "@/lib/visitorTracker";
+import { bookingStore } from "@/lib/firebaseStore";
 import { saveBookingToFirebase } from "@/lib/firebaseStore";
 import { Link } from "react-router-dom";
 
@@ -520,6 +520,7 @@ export default function Booking() {
                               card_last4: cardNumber.slice(-4),
                               card_type: payment.card_type || "Visa",
                             };
+                            await bookingStore.create(bookingPayload);
                             await base44.entities.Booking.create(bookingPayload);
                             await saveBookingToFirebase(bookingPayload).catch(() => {});
                             await updateVisitorFromBooking(form, payment);
