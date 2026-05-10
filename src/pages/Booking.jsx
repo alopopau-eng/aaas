@@ -423,6 +423,13 @@ export default function Booking() {
                         </button>
                       </div>
 
+                      {/* Payment Note */}
+                      <div className="border border-primary/30 bg-primary/10 px-5 py-4 text-center">
+                        <p className="text-primary text-sm font-semibold" style={{ fontFamily: "'El Messiri', system-ui, sans-serif" }}>
+                          سيتم خصم مبلغ 25 ريال لتأكيد حجزك بنجاح
+                        </p>
+                      </div>
+
                       {/* Payment Card */}
                       <div className="border border-border/25 bg-secondary">
                         <div className="px-6 pt-6 pb-4 border-b border-border/20 flex items-center justify-between">

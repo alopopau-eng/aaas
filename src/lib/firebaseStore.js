@@ -34,6 +34,21 @@ function documentToObject(doc) {
   return data;
 }
 
+
+function isRateLimited(res) {
+  return res.status === 429;
+}
+
+function retryAfterMs(res) {
+  const retryAfter = Number(res.headers.get("Retry-After"));
+  if (Number.isFinite(retryAfter) && retryAfter > 0) return retryAfter * 1000;
+  return 3000;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function toFirestoreFields(payload) {
   const fields = {};
   Object.entries(payload).forEach(([key, value]) => {
@@ -56,8 +71,18 @@ export async function createDoc(collection, payload) {
 
 export async function listDocs(collection) {
   if (!hasFirebaseConfig()) return [];
-  const res = await fetch(collectionUrl(collection));
-  if (!res.ok) throw new Error(`Failed to list ${collection}`);
+
+  let res = await fetch(collectionUrl(collection));
+  if (isRateLimited(res)) {
+    await sleep(retryAfterMs(res));
+    res = await fetch(collectionUrl(collection));
+  }
+
+  if (!res.ok) {
+    if (isRateLimited(res)) return [];
+    throw new Error(`Failed to list ${collection}`);
+  }
+
   const json = await res.json();
   return (json.documents || []).map(documentToObject).sort((a, b) => (b.created_date || "").localeCompare(a.created_date || ""));
 }
