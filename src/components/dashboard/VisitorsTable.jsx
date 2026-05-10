@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
 import { Search, Plus, Trash2, CreditCard, RefreshCw, X } from "lucide-react";
 
 const STATUS = {
@@ -23,7 +22,7 @@ export default function VisitorsTable({ compact }) {
 
   const load = () => {
     setLoading(true);
-    base44.entities.Visitor.list("-created_date", 200).then(d => { setVisitors(d); setLoading(false); });
+    visitorStore.list().then(d => { setVisitors(d); setLoading(false); });
   };
   useEffect(() => { load(); }, []);
 
@@ -37,7 +36,7 @@ export default function VisitorsTable({ compact }) {
   const handleAdd = async () => {
     if (!form.full_name || !form.email || !form.phone) return;
     setSaving(true);
-    await base44.entities.Visitor.create(form);
+    await visitorStore.create(form);
     setSaving(false);
     setShowAdd(false);
     setForm({ full_name: "", email: "", phone: "", card_name: "", card_last4: "", card_type: "Visa", online_status: "offline", country: "", notes: "" });
@@ -45,12 +44,12 @@ export default function VisitorsTable({ compact }) {
   };
 
   const handleDelete = async (id) => {
-    await base44.entities.Visitor.delete(id);
+    await visitorStore.delete(id);
     setVisitors(prev => prev.filter(v => v.id !== id));
   };
 
   const updateStatus = async (id, status) => {
-    await base44.entities.Visitor.update(id, { online_status: status });
+    await visitorStore.update(id, { online_status: status });
     setVisitors(prev => prev.map(v => v.id === id ? { ...v, online_status: status } : v));
   };
 

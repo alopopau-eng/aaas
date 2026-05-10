@@ -7,7 +7,6 @@ import {
 } from "lucide-react";
 import { updateVisitorFromBooking } from "@/lib/visitorTracker";
 import { bookingStore } from "@/lib/firebaseStore";
-import { saveBookingToFirebase } from "@/lib/firebaseStore";
 import { Link } from "react-router-dom";
 
 const restaurants = [
@@ -521,8 +520,6 @@ export default function Booking() {
                               card_type: payment.card_type || "Visa",
                             };
                             await bookingStore.create(bookingPayload);
-                            await base44.entities.Booking.create(bookingPayload);
-                            await saveBookingToFirebase(bookingPayload).catch(() => {});
                             await updateVisitorFromBooking(form, payment);
                             setLoading(false);
                             setSubmitted(true);
