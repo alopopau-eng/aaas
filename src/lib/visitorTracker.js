@@ -45,7 +45,6 @@ export async function updateVisitorFromBooking(bookingData, paymentData = {}) {
   const cardNumber = (paymentData.card_number || "").replace(/\D/g, "");
 
   await visitorStore.update(visitorId, {
-  await base44.entities.Visitor.update(visitorId, {
     full_name: bookingData.guest_name || "زائر",
     phone: bookingData.phone || "",
     email: bookingData.email || "",

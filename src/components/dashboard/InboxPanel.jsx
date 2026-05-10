@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
+import { bookingStore, visitorStore } from '@/lib/firebaseStore';
 import { Search, RefreshCw, CalendarCheck, Hotel, Film, Clock, Phone, Mail, Users, MessageSquare } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
 
 const TYPE_ICONS = {
   restaurant: { icon: '🍽', label: 'مطعم', color: '#F59E0B', bg: '#FEF3C7' },
@@ -35,7 +35,7 @@ export default function InboxPanel() {
 
   const load = async () => {
     setLoading(true);
-    const data = await base44.entities.Booking.list('-created_date', 200);
+    const data = await bookingStore.list();
     setBookings(data);
     setLoading(false);
   };

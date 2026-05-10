@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Clock, MapPin, Phone } from "lucide-react";
-import { base44 } from "@/api/base44Client";
 import { Link, useNavigate } from "react-router-dom";
 
 const AnimatedElement = ({ children, className, delay = 0 }) => {

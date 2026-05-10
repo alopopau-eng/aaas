@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { base44 } from '@/api/base44Client';
+import { visitorStore } from '@/lib/firebaseStore';
 import { Bell, X, User, Clock, Wifi } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -31,7 +31,7 @@ export default function VisitorAlerts() {
   };
 
   const checkVisitors = async () => {
-    const visitors = await base44.entities.Visitor.filter({ online_status: 'online' });
+    const visitors = await visitorStore.list().then(v => v.filter(x => x.online_status === "online"));
     const now = Date.now();
 
     visitors.forEach(v => {
