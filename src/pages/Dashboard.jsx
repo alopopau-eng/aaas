@@ -74,23 +74,19 @@ export default function Dashboard() {
       setBookings(sortedBookings);
       setVisitors(v);
       setSelectedId((prev) => prev || sortedBookings[0]?.id || null);
+    } catch (err) {
+      console.error("Failed to load dashboard data", err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (!isAuthed) return;
+    if (!isAuthed) return undefined;
     load();
-    const t = setInterval(load, 2500);
+    const t = setInterval(load, 15000);
     return () => clearInterval(t);
   }, [isAuthed]);
-
-  useEffect(() => {
-    load();
-    const t = setInterval(load, 2500);
-    return () => clearInterval(t);
-  }, []);
 
   const filtered = useMemo(
     () =>
