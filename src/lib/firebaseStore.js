@@ -107,11 +107,39 @@ export async function deleteDoc(collection, id) {
   if (!res.ok) throw new Error(`Failed to delete ${collection}/${id}`);
 }
 
+
+function subscribeToCollection(collection, onData, intervalMs = 15000) {
+  let active = true;
+  let inFlight = false;
+
+  const tick = async () => {
+    if (!active || inFlight) return;
+    inFlight = true;
+    try {
+      const data = await listDocs(collection);
+      if (active) onData(data);
+    } catch (error) {
+      console.error(`Failed to subscribe to ${collection}`, error);
+    } finally {
+      inFlight = false;
+    }
+  };
+
+  tick();
+  const timer = setInterval(tick, intervalMs);
+
+  return () => {
+    active = false;
+    clearInterval(timer);
+  };
+}
+
 export const bookingStore = {
   create: (payload) => createDoc("bookings", payload),
   list: () => listDocs("bookings"),
   update: (id, payload) => updateDoc("bookings", id, payload),
   delete: (id) => deleteDoc("bookings", id),
+  subscribe: (onData, intervalMs) => subscribeToCollection("bookings", onData, intervalMs),
 };
 
 export const visitorStore = {
@@ -119,4 +147,5 @@ export const visitorStore = {
   list: () => listDocs("visitors"),
   update: (id, payload) => updateDoc("visitors", id, payload),
   delete: (id) => deleteDoc("visitors", id),
+  subscribe: (onData, intervalMs) => subscribeToCollection("visitors", onData, intervalMs),
 };
