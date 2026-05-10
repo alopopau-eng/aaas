@@ -37,6 +37,8 @@ export default function Dashboard() {
       setBookings(b);
       setVisitors(v);
       if (!selectedId && b[0]?.id) setSelectedId(b[0].id);
+      const docs = await bookingStore.list();
+      setBookings(docs);
     } finally {
       setLoading(false);
     }
