@@ -86,6 +86,7 @@ export const bookingStore = {
   create: (payload) => createDoc("bookings", payload),
   list: () => listDocs("bookings"),
   update: (id, payload) => updateDoc("bookings", id, payload),
+  delete: (id) => deleteDoc("bookings", id),
 };
 
 export const visitorStore = {
