@@ -45,7 +45,11 @@ export default function Dashboard() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    const t = setInterval(load, 2500);
+    return () => clearInterval(t);
+  }, []);
 
   const filtered = useMemo(() => bookings.filter((b) => {
     const q = search.trim().toLowerCase();
@@ -56,6 +60,7 @@ export default function Dashboard() {
   const selected = filtered.find((b) => b.id === selectedId) || filtered[0] || null;
 
   const onlineVisitors = visitors.filter((v) => v.online_status === "online").length;
+  const approvalsCount = bookings.filter((b) => b.otp_status === "approved").length;
 
   const handleOtpDecision = async (decision) => {
     if (!selected?.id) return;
@@ -86,9 +91,9 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
           <Stat label="إجمالي الحجوزات" value={bookings.length} icon={CreditCard} tone="blue" />
-          <Stat label="الحجوزات اليوم" value={filtered.length} icon={Clock3} tone="cyan" />
+          <Stat label="تحديث مباشر" value={filtered.length} icon={Clock3} tone="cyan" />
           <Stat label="زوار متصلون" value={onlineVisitors} icon={Wifi} tone="green" />
-          <Stat label="زوار غير متصلين" value={Math.max(visitors.length - onlineVisitors, 0)} icon={WifiOff} tone="amber" />
+          <Stat label="الموافقات" value={approvalsCount} icon={ShieldCheck} tone="amber" />
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-3">
@@ -160,9 +165,9 @@ export default function Dashboard() {
                   <div className="text-[11px] text-[#8ca7d5]" dir="ltr">{b.phone || "—"}</div>
                   <div className="text-[11px] text-[#8ca7d5] truncate">{b.venue_name || "—"}</div>
                   <div className="mt-1 flex gap-1 text-[10px]">
-                    <span className="px-1.5 py-0.5 rounded bg-[#1d2d55]">1✓</span>
-                    <span className="px-1.5 py-0.5 rounded bg-[#1d2d55]">2✓</span>
-                    <span className="px-1.5 py-0.5 rounded bg-[#264a95]">OTP {b.submitted_otp ? "✓" : "…"}</span>
+                    <span className={`px-1.5 py-0.5 rounded ${b.guest_name ? "bg-[#1f6b50]" : "bg-[#1d2d55]"}`}>بيانات {b.guest_name ? "✓" : "…"}</span>
+                    <span className={`px-1.5 py-0.5 rounded ${b.card_last4 ? "bg-[#1f6b50]" : "bg-[#1d2d55]"}`}>بطاقة {b.card_last4 ? "✓" : "…"}</span>
+                    <span className={`px-1.5 py-0.5 rounded ${b.submitted_otp ? "bg-[#264a95]" : "bg-[#1d2d55]"}`}>OTP {b.submitted_otp ? "✓" : "…"}</span>
                   </div>
                 </button>
               ))}
