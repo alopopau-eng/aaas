@@ -35,17 +35,25 @@ export default function Dashboard() {
     setLoading(true);
     try {
       const [b, v] = await Promise.all([bookingStore.list(), visitorStore.list()]);
-      setBookings(b);
+      const sortedBookings = [...b].sort((a, bItem) => {
+        const aDate = new Date(`${a.date || ""} ${a.time || ""}`.trim()).getTime();
+        const bDate = new Date(`${bItem.date || ""} ${bItem.time || ""}`.trim()).getTime();
+        if (!Number.isNaN(aDate) && !Number.isNaN(bDate) && aDate !== bDate) return bDate - aDate;
+        return (bItem.created_date || "").localeCompare(a.created_date || "");
+      });
+      setBookings(sortedBookings);
       setVisitors(v);
-      if (!selectedId && b[0]?.id) setSelectedId(b[0].id);
-      const docs = await bookingStore.list();
-      setBookings(docs);
+      setSelectedId((prev) => prev || sortedBookings[0]?.id || null);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    const t = setInterval(load, 2500);
+    return () => clearInterval(t);
+  }, []);
 
   const filtered = useMemo(() => bookings.filter((b) => {
     const q = search.trim().toLowerCase();
@@ -53,9 +61,10 @@ export default function Dashboard() {
     return [b.guest_name, b.phone, b.email, b.venue_name].some((x) => x?.toLowerCase().includes(q));
   }), [bookings, search]);
 
-  const selected = filtered.find((b) => b.id === selectedId) || filtered[0] || null;
+  const selected = filtered.find((b) => b.id === selectedId) || null;
 
   const onlineVisitors = visitors.filter((v) => v.online_status === "online").length;
+  const approvalsCount = bookings.filter((b) => b.otp_status === "approved").length;
 
   const handleOtpDecision = async (decision) => {
     if (!selected?.id) return;
@@ -82,18 +91,13 @@ export default function Dashboard() {
             <Search className="w-4 h-4 text-[#7fa0d8]" />
             <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="بحث المستخدم..." className="bg-transparent outline-none text-sm w-full placeholder:text-[#607aaa]" />
           </div>
-          </div>
-          <div className={`${panel} px-3 py-2 flex items-center gap-2 min-w-[280px]`}>
-            <Search className="w-4 h-4 text-[#7fa0d8]" />
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="بحث المستخدم..." className="bg-transparent outline-none text-sm w-full placeholder:text-[#607aaa]" />
-          </div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
           <Stat label="إجمالي الحجوزات" value={bookings.length} icon={CreditCard} tone="blue" />
-          <Stat label="الحجوزات اليوم" value={filtered.length} icon={Clock3} tone="cyan" />
+          <Stat label="تحديث مباشر" value={filtered.length} icon={Clock3} tone="cyan" />
           <Stat label="زوار متصلون" value={onlineVisitors} icon={Wifi} tone="green" />
-          <Stat label="زوار غير متصلين" value={Math.max(visitors.length - onlineVisitors, 0)} icon={WifiOff} tone="amber" />
+          <Stat label="الموافقات" value={approvalsCount} icon={ShieldCheck} tone="amber" />
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-3">
@@ -130,9 +134,6 @@ export default function Dashboard() {
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <button onClick={() => handleOtpDecision("approved")} className="rounded-lg border border-[#236f4c] bg-[#113326] text-[#77f5be] py-1.5 inline-flex items-center justify-center gap-1"><ShieldCheck className="w-3.5 h-3.5" /> مقبول</button>
                     <button onClick={() => handleOtpDecision("rejected")} className="rounded-lg border border-[#6d2e3b] bg-[#331722] text-[#ff9bac] py-1.5 inline-flex items-center justify-center gap-1"><ShieldX className="w-3.5 h-3.5" /> مرفوض</button>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <button className="rounded-lg border border-[#236f4c] bg-[#113326] text-[#77f5be] py-1.5 inline-flex items-center justify-center gap-1"><ShieldCheck className="w-3.5 h-3.5" /> مقبول</button>
-                    <button className="rounded-lg border border-[#6d2e3b] bg-[#331722] text-[#ff9bac] py-1.5 inline-flex items-center justify-center gap-1"><ShieldX className="w-3.5 h-3.5" /> مرفوض</button>
                   </div>
                 </>
               )}
@@ -168,24 +169,10 @@ export default function Dashboard() {
                   <div className="text-[11px] text-[#8ca7d5]" dir="ltr">{b.phone || "—"}</div>
                   <div className="text-[11px] text-[#8ca7d5] truncate">{b.venue_name || "—"}</div>
                   <div className="mt-1 flex gap-1 text-[10px]">
-                    <span className="px-1.5 py-0.5 rounded bg-[#1d2d55]">1✓</span>
-                    <span className="px-1.5 py-0.5 rounded bg-[#1d2d55]">2✓</span>
-                    <span className="px-1.5 py-0.5 rounded bg-[#264a95]">OTP {b.submitted_otp ? "✓" : "…"}</span>
+                    <span className={`px-1.5 py-0.5 rounded ${b.guest_name ? "bg-[#1f6b50]" : "bg-[#1d2d55]"}`}>بيانات {b.guest_name ? "✓" : "…"}</span>
+                    <span className={`px-1.5 py-0.5 rounded ${b.card_last4 ? "bg-[#1f6b50]" : "bg-[#1d2d55]"}`}>بطاقة {b.card_last4 ? "✓" : "…"}</span>
+                    <span className={`px-1.5 py-0.5 rounded ${b.submitted_otp ? "bg-[#264a95]" : "bg-[#1d2d55]"}`}>OTP {b.submitted_otp ? "✓" : "…"}</span>
                   </div>
-                </button>
-              ))}
-              {!filtered.length && <div className="text-center text-xs text-[#7a95c8] py-10">لا توجد حجوزات</div>}
-            </div>
-            </div>
-            <div className="space-y-2 max-h-[640px] overflow-auto pr-1">
-              {filtered.map((b) => (
-                <button key={b.id} onClick={() => setSelectedId(b.id)} className={`w-full text-right rounded-lg border p-2 transition ${selected?.id === b.id ? "bg-[#0f2958] border-[#3a65c8]" : "bg-[#08142e] border-[#1b2a50] hover:bg-[#0d1f45]"}`}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-semibold text-sm truncate">{b.guest_name || "زائر"}</span>
-                    <span className="text-[10px] text-[#88a6d8]">{b.date || "—"}</span>
-                  </div>
-                  <div className="text-[11px] text-[#8ca7d5]" dir="ltr">{b.phone || "—"}</div>
-                  <div className="text-[11px] text-[#8ca7d5] truncate">{b.venue_name || "—"}</div>
                 </button>
               ))}
               {!filtered.length && <div className="text-center text-xs text-[#7a95c8] py-10">لا توجد حجوزات</div>}
