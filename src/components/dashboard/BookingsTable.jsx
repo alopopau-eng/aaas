@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
 import { Search, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 
 const STATUS_STYLE = {
@@ -19,12 +18,12 @@ export default function BookingsTable({ compact }) {
 
   const load = () => {
     setLoading(true);
-    base44.entities.Booking.list("-created_date", 200).then(d => { setBookings(d); setLoading(false); });
+    bookingStore.list().then(d => { setBookings(d); setLoading(false); });
   };
   useEffect(() => { load(); }, []);
 
   const updateStatus = async (id, status) => {
-    await base44.entities.Booking.update(id, { status });
+    await bookingStore.update(id, { status });
     setBookings(prev => prev.map(b => b.id === id ? { ...b, status } : b));
   };
 

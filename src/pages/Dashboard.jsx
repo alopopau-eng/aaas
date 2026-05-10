@@ -7,7 +7,6 @@ import {
 import InboxPanel from "@/components/dashboard/InboxPanel";
 import VisitorAlerts from "@/components/dashboard/VisitorAlerts";
 import { bookingStore, visitorStore } from "@/lib/firebaseStore";
-import { listBookingsFromFirebase } from "@/lib/firebaseStore";
 
 // ─── NAV ────────────────────────────────────────────────────────────────────
 const NAV = [
@@ -60,13 +59,6 @@ function BookingsPanel({ compact }) {
     try {
       const docs = await bookingStore.list();
       setBookings(docs);
-      const firebaseBookings = await listBookingsFromFirebase();
-      if (firebaseBookings.length) {
-        setBookings(firebaseBookings);
-      } else {
-        const d = await base44.entities.Booking.list("-created_date", 200);
-        setBookings(d);
-      }
     } finally {
       setLoading(false);
     }
