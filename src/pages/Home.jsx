@@ -111,8 +111,8 @@ function HeroSection() {
 function ExploreSection() {
   const staticFallback = [
     { title: "مطاعم ڤيا رياض", subtitle: "مطاعم عالمية", link: "/Dine", link_text: "المزيد عن المطاعم", image_url: "https://media.base44.com/images/public/69ffa3030b658fe6093efead/4ddb85a07_www_viariyadh_com_explore_desktop_dine_60eba179ba_53d63d1d4c_a9c7513a.webp" },
-    { title: "متاجر ڤيا رياض", subtitle: "علامات راقية", link: "#", link_text: "المزيد عن المتاجر", image_url: "https://media.base44.com/images/public/69ffa3030b658fe6093efead/3ae9bf98a_www_viariyadh_com_explore_desktop_shop_c75c1e6670_3ce44143fb_f085184378_ad643c19.webp" },
-    { title: "سينما ڤيا رياض", subtitle: "تجربة استثنائية", link: "#", link_text: "المزيد عن السينمات الفريدة", image_url: "https://media.base44.com/images/public/69ffa3030b658fe6093efead/19d10f500_www_viariyadh_com_DSC_01376_f086307239_832682df.jpg" },
+    { title: "متاجر ڤيا رياض", subtitle: "علامات راقية", link: "https://www.viariyadh.com/explore/shop", link_text: "المزيد عن المتاجر", image_url: "https://media.base44.com/images/public/69ffa3030b658fe6093efead/3ae9bf98a_www_viariyadh_com_explore_desktop_shop_c75c1e6670_3ce44143fb_f085184378_ad643c19.webp" },
+    { title: "سينما ڤيا رياض", subtitle: "تجربة استثنائية", link: "/Cinema", link_text: "المزيد عن السينمات الفريدة", image_url: "https://media.base44.com/images/public/69ffa3030b658fe6093efead/19d10f500_www_viariyadh_com_DSC_01376_f086307239_832682df.jpg" },
   ];
 
   const items = staticFallback;
@@ -156,9 +156,15 @@ function ExploreSection() {
                     {item.title}
                   </h3>
                   
-                  <LuxuryButton to={item.link === "/Dine" ? "/Dine" : "#"} className="opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-200">
-                    {item.link_text}
-                  </LuxuryButton>
+                  {item.link.startsWith("http") ? (
+                    <LuxuryButton href={item.link} className="opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-200">
+                      {item.link_text}
+                    </LuxuryButton>
+                  ) : (
+                    <LuxuryButton to={item.link} className="opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-200">
+                      {item.link_text}
+                    </LuxuryButton>
+                  )}
                 </div>
               </div>
             </AnimatedElement>
