@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
 import { CalendarCheck, UserCheck, Clock, Users, Wifi } from "lucide-react";
 
 export default function DashboardStats({ activeTab }) {
@@ -7,8 +6,8 @@ export default function DashboardStats({ activeTab }) {
   const [visitors, setVisitors] = useState([]);
 
   useEffect(() => {
-    base44.entities.Booking.list().then(setBookings).catch(() => {});
-    base44.entities.Visitor.list().then(setVisitors).catch(() => {});
+    bookingStore.list().then(setBookings).catch(() => {});
+    visitorStore.list().then(setVisitors).catch(() => {});
   }, []);
 
   const confirmed = bookings.filter(b => b.status === "confirmed").length;

