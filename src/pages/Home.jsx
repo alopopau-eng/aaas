@@ -51,6 +51,23 @@ const LuxuryButton = ({ href, to, children, className = "" }) => {
 };
 
 function HeroSection() {
+  useEffect(() => {
+    const existingPreload = document.querySelector('link[data-via-intro-preload="true"]');
+    if (existingPreload) return;
+
+    const preloadLink = document.createElement("link");
+    preloadLink.rel = "preload";
+    preloadLink.as = "video";
+    preloadLink.href = "https://www.viariyadh.com/videos/introAnimation-1920x1080.webm";
+    preloadLink.type = "video/webm";
+    preloadLink.setAttribute("data-via-intro-preload", "true");
+    document.head.appendChild(preloadLink);
+
+    return () => {
+      preloadLink.remove();
+    };
+  }, []);
+
   return (
     <section className="relative w-full h-[100svh] bg-background">
       {/* Background Image with slow zoom */}
