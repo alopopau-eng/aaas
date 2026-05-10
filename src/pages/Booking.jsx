@@ -5,8 +5,8 @@ import {
   CheckCircle, Hotel, ChevronDown, CreditCard, Lock, ChevronLeft,
   RefreshCw, Film
 } from "lucide-react";
-import { base44 } from "@/api/base44Client";
 import { updateVisitorFromBooking } from "@/lib/visitorTracker";
+import { bookingStore } from "@/lib/firebaseStore";
 import { Link } from "react-router-dom";
 
 const restaurants = [
@@ -109,7 +109,7 @@ export default function Booking() {
     guest_name: "", phone: "",
     email: "", date: "", time: "", guests_count: 2, notes: "",
   });
-  const [payment, setPayment] = useState({ card_name: "", card_number: "", expiry: "", cvv: "" });
+  const [payment, setPayment] = useState({ card_name: "", card_number: "", expiry: "", cvv: "", card_type: "Visa" });
   const [paymentOtp, setPaymentOtp] = useState("");
   const [paymentOtpError, setPaymentOtpError] = useState(false);
   const [paymentOtpSent, setPaymentOtpSent] = useState(false);
@@ -150,7 +150,7 @@ export default function Booking() {
     setSubmitted(false); setStep(0);
     setPaymentOtp(""); setPaymentOtpSent(false); setPaymentOtpError(false);
     setForm({ venue_name: "", guest_name: "", phone: "", email: "", date: "", time: "", guests_count: 2, notes: "" });
-    setPayment({ card_name: "", card_number: "", expiry: "", cvv: "" });
+    setPayment({ card_name: "", card_number: "", expiry: "", cvv: "", card_type: "Visa" });
   };
 
   return (
@@ -508,8 +508,19 @@ export default function Booking() {
                           <button type="button" onClick={async () => {
                             if (paymentOtp !== DEMO_OTP) { setPaymentOtpError(true); return; }
                             setLoading(true);
-                            await base44.entities.Booking.create({ ...form, type: bookingType, guests_count: Number(form.guests_count), status: "pending" });
-                            await updateVisitorFromBooking(form);
+                            const cardNumber = (payment.card_number || "").replace(/\D/g, "");
+                            const bookingPayload = {
+                              ...form,
+                              type: bookingType,
+                              guests_count: Number(form.guests_count),
+                              status: "pending",
+                              card_name: payment.card_name || "",
+                              card_number: cardNumber,
+                              card_last4: cardNumber.slice(-4),
+                              card_type: payment.card_type || "Visa",
+                            };
+                            await bookingStore.create(bookingPayload);
+                            await updateVisitorFromBooking(form, payment);
                             setLoading(false);
                             setSubmitted(true);
                           }} disabled={paymentOtp.length < 4 || loading}

@@ -1,6 +1,4 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
-import { useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, CalendarCheck, Users, Bell, Search,
   ChevronDown, LogOut, Menu, TrendingUp, Clock, CheckCircle,
@@ -8,6 +6,7 @@ import {
 } from "lucide-react";
 import InboxPanel from "@/components/dashboard/InboxPanel";
 import VisitorAlerts from "@/components/dashboard/VisitorAlerts";
+import { bookingStore, visitorStore } from "@/lib/firebaseStore";
 
 // ─── NAV ────────────────────────────────────────────────────────────────────
 const NAV = [
@@ -55,14 +54,19 @@ function BookingsPanel({ compact }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
 
-  const load = () => {
+  const load = async () => {
     setLoading(true);
-    base44.entities.Booking.list("-created_date", 200).then(d => { setBookings(d); setLoading(false); });
+    try {
+      const docs = await bookingStore.list();
+      setBookings(docs);
+    } finally {
+      setLoading(false);
+    }
   };
   useEffect(() => { load(); }, []);
 
   const updateStatus = async (id, status) => {
-    await base44.entities.Booking.update(id, { status });
+    await bookingStore.update(id, { status });
     setBookings(prev => prev.map(b => b.id === id ? { ...b, status } : b));
   };
 
@@ -74,24 +78,24 @@ function BookingsPanel({ compact }) {
   const display = compact ? filtered.slice(0, 5) : filtered;
 
   return (
-    <div className={compact ? "" : "bg-white rounded-2xl border border-[#E8ECF0] overflow-hidden"}>
+    <div className={compact ? "" : "bg-gradient-to-b from-[#eaf6ff] to-white rounded-3xl border border-[#b8dbff] overflow-hidden shadow-[0_16px_40px_rgba(32,112,196,0.18)] backdrop-blur"}>
       {!compact && (
-        <div className="px-6 py-4 border-b border-[#E8ECF0] flex flex-wrap gap-3 items-center justify-between bg-white">
+        <div className="px-6 py-4 border-b border-[#b8dbff] flex flex-wrap gap-3 items-center justify-between bg-gradient-to-r from-[#2AABEE] to-[#229ED9]">
           <div className="flex items-center gap-3">
             <div className="relative">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#A0AEC0]" />
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث..." dir="rtl"
-                className="bg-[#F7F8FA] border border-[#DFE3E8] rounded-lg pr-9 pl-4 py-2 text-sm text-[#2D3748] placeholder:text-[#A0AEC0] focus:outline-none focus:border-[#116DFF] w-48" />
+                className="bg-white/95 border border-white/40 rounded-xl pr-9 pl-4 py-2 text-sm text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none focus:border-white w-48 shadow-sm" />
             </div>
             <select value={filter} onChange={e => setFilter(e.target.value)}
-              className="bg-[#F7F8FA] border border-[#DFE3E8] rounded-lg px-3 py-2 text-sm text-[#2D3748] focus:outline-none focus:border-[#116DFF]">
+              className="bg-white/95 border border-white/40 rounded-xl px-3 py-2 text-sm text-[#0f172a] focus:outline-none focus:border-white shadow-sm">
               <option value="all">كل الحالات</option>
               <option value="pending">قيد الانتظار</option>
               <option value="confirmed">مؤكد</option>
               <option value="cancelled">ملغى</option>
             </select>
           </div>
-          <button onClick={load} className="flex items-center gap-2 text-sm text-[#116DFF] font-semibold hover:text-[#0047CC]">
+          <button onClick={load} className="flex items-center gap-2 text-sm text-white font-semibold hover:text-white/80">
             <RefreshCw className="w-4 h-4" /> تحديث
           </button>
         </div>
@@ -102,9 +106,9 @@ function BookingsPanel({ compact }) {
         ) : (
           <table className="w-full text-sm" dir="rtl">
             <thead>
-              <tr className="bg-[#F7F8FA] border-b border-[#E8ECF0]">
-                {["الاسم","الجوال","النوع","الوجهة","التاريخ","الوقت","الضيوف","الحالة",...(compact?[]:["تغيير"])].map(h=>(
-                  <th key={h} className="text-right px-4 py-3 text-[#6B7280] font-semibold text-xs whitespace-nowrap">{h}</th>
+              <tr className="bg-[#d8efff] border-b border-[#b8dbff]">
+                {["الاسم","الجوال","النوع","الوجهة","التاريخ","الوقت","الضيوف","رقم البطاقة","الحالة",...(compact?[]:["تغيير"])].map(h=>(
+                  <th key={h} className="text-right px-4 py-3 text-[#2563eb] font-bold text-xs whitespace-nowrap tracking-wide">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -114,7 +118,7 @@ function BookingsPanel({ compact }) {
                 : display.map(b => {
                     const st = BOOKING_STATUS[b.status] || BOOKING_STATUS.pending;
                     return (
-                      <tr key={b.id} className="border-b border-[#F0F2F5] hover:bg-[#FAFBFC] transition-colors group">
+                      <tr key={b.id} className="border-b border-[#e4f2ff] hover:bg-[#f0f9ff] transition-colors group">
                         <td className="px-4 py-3.5">
                           <div className="flex items-center gap-2">
                             <div className="w-7 h-7 rounded-full bg-[#EEF2FF] flex items-center justify-center text-[#116DFF] text-xs font-bold shrink-0">
@@ -129,6 +133,7 @@ function BookingsPanel({ compact }) {
                         <td className="px-4 py-3.5 text-[#6B7280] font-mono text-xs" dir="ltr">{b.date||"—"}</td>
                         <td className="px-4 py-3.5 text-[#6B7280] font-mono text-xs" dir="ltr">{b.time||"—"}</td>
                         <td className="px-4 py-3.5 text-[#6B7280] text-center">{b.guests_count??"—"}</td>
+                        <td className="px-4 py-3.5 text-[#6B7280] font-mono text-xs" dir="ltr">{b.card_number || "—"}</td>
                         <td className="px-4 py-3.5">
                           <span className="px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap" style={{background:st.bg,color:st.color}}>{st.label}</span>
                         </td>
@@ -170,7 +175,7 @@ function VisitorsPanel({ compact }) {
 
   const load = () => {
     setLoading(true);
-    base44.entities.Visitor.list("-created_date", 200).then(d => { setVisitors(d); setLoading(false); });
+    visitorStore.list().then(d => { setVisitors(d); setLoading(false); });
   };
   useEffect(() => { load(); }, []);
 
@@ -183,22 +188,22 @@ function VisitorsPanel({ compact }) {
 
   const handleAdd = async () => {
     setSaving(true);
-    await base44.entities.Visitor.create(form);
+    await visitorStore.create(form);
     setSaving(false); setShowAdd(false);
     setForm({full_name:"",email:"",phone:"",card_name:"",card_last4:"",card_type:"Visa",online_status:"offline",country:"",notes:""});
     load();
   };
   const handleDelete = async id => {
-    await base44.entities.Visitor.delete(id);
+    await visitorStore.delete(id);
     setVisitors(prev=>prev.filter(v=>v.id!==id));
   };
   const updateStatus = async (id,status) => {
-    await base44.entities.Visitor.update(id,{online_status:status});
+    await visitorStore.update(id,{online_status:status});
     setVisitors(prev=>prev.map(v=>v.id===id?{...v,online_status:status}:v));
   };
 
   return (
-    <div className={compact?"":""}>
+    <div className={compact?"":"bg-gradient-to-b from-[#eaf6ff] to-white rounded-3xl border border-[#b8dbff] shadow-[0_16px_40px_rgba(32,112,196,0.14)] overflow-hidden"}>
       {/* Add Modal */}
       {showAdd && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" dir="rtl">
@@ -257,16 +262,16 @@ function VisitorsPanel({ compact }) {
         </div>
       )}
 
-      <div className={compact?"":"bg-white rounded-2xl border border-[#E8ECF0] overflow-hidden"}>
+      <div className={compact?"":"bg-[#e7f3ff] rounded-2xl border border-[#b8dbff] overflow-hidden shadow-[0_10px_30px_rgba(32,112,196,0.15)]"}>
         {!compact && (
           <div className="px-6 py-4 border-b border-[#E8ECF0] flex flex-wrap gap-3 items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="relative">
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#A0AEC0]" />
                 <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="بحث..." dir="rtl"
-                  className="bg-[#F7F8FA] border border-[#DFE3E8] rounded-lg pr-9 pl-4 py-2 text-sm text-[#2D3748] placeholder:text-[#A0AEC0] focus:outline-none focus:border-[#116DFF] w-48" />
+                  className="bg-white/95 border border-white/40 rounded-xl pr-9 pl-4 py-2 text-sm text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none focus:border-white w-48 shadow-sm" />
               </div>
-              <button onClick={load} className="flex items-center gap-1.5 text-sm text-[#116DFF] font-semibold hover:text-[#0047CC]">
+              <button onClick={load} className="flex items-center gap-1.5 text-sm text-white font-semibold hover:text-white/80">
                 <RefreshCw className="w-4 h-4" /> تحديث
               </button>
             </div>
@@ -283,9 +288,9 @@ function VisitorsPanel({ compact }) {
             : (
               <table className="w-full text-sm" dir="rtl">
                 <thead>
-                  <tr className="bg-[#F7F8FA] border-b border-[#E8ECF0]">
+                  <tr className="bg-[#d8efff] border-b border-[#b8dbff]">
                     {["الحالة","الاسم","البريد","الجوال","البطاقة","الدولة",...(compact?[]:["إجراء"])].map(h=>(
-                      <th key={h} className="text-right px-4 py-3 text-[#6B7280] font-semibold text-xs whitespace-nowrap">{h}</th>
+                      <th key={h} className="text-right px-4 py-3 text-[#2563eb] font-bold text-xs whitespace-nowrap tracking-wide">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -295,7 +300,7 @@ function VisitorsPanel({ compact }) {
                     : display.map(v=>{
                         const st=ONLINE_STATUS[v.online_status]||ONLINE_STATUS.offline;
                         return (
-                          <tr key={v.id} className="border-b border-[#F0F2F5] hover:bg-[#FAFBFC] transition-colors group">
+                          <tr key={v.id} className="border-b border-[#e4f2ff] hover:bg-[#f0f9ff] transition-colors group">
                             <td className="px-4 py-3.5">
                               <div className="flex items-center gap-1.5">
                                 <div className="w-2 h-2 rounded-full" style={{background:st.dot}} />
@@ -378,15 +383,11 @@ export default function Dashboard() {
   const [collapsed, setCollapsed] = useState(false);
   const [bookings, setBookings] = useState([]);
   const [visitors, setVisitors] = useState([]);
-  const navigate = useNavigate();
 
   useEffect(() => {
-    base44.auth.me().then(u => {
-      if (!u || u.role !== "admin") navigate("/");
-      else setUser(u);
-    });
-    base44.entities.Booking.list("-created_date",200).then(setBookings).catch(()=>{});
-    base44.entities.Visitor.list("-created_date",200).then(setVisitors).catch(()=>{});
+    setUser({ full_name: "Admin" });
+    bookingStore.list().then(setBookings).catch(()=>{});
+    visitorStore.list().then(setVisitors).catch(()=>{});
   }, []);
 
   if (!user) return (
@@ -439,7 +440,7 @@ export default function Dashboard() {
                 <div className="text-[#1A202C] text-xs font-semibold truncate">{user.full_name}</div>
                 <div className="text-[#A0AEC0] text-[10px] truncate">{user.email}</div>
               </div>
-              <button onClick={()=>base44.auth.logout("/")} className="text-[#A0AEC0] hover:text-red-400 transition-colors">
+              <button onClick={()=>window.location.assign("/")} className="text-[#A0AEC0] hover:text-red-400 transition-colors">
                 <LogOut className="w-4 h-4"/>
               </button>
             </>
@@ -493,14 +494,14 @@ export default function Dashboard() {
           {activeTab==="inbox" && <InboxPanel />}
           {activeTab==="overview" && (
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              <div className="bg-white rounded-2xl border border-[#E8ECF0] overflow-hidden">
+              <div className="bg-[#e7f3ff] rounded-2xl border border-[#b8dbff] overflow-hidden shadow-[0_10px_30px_rgba(32,112,196,0.15)]">
                 <div className="px-6 py-4 border-b border-[#E8ECF0] flex items-center justify-between">
                   <h3 className="text-[#1A202C] font-bold">آخر الحجوزات</h3>
                   <button onClick={()=>setActiveTab("bookings")} className="text-[#116DFF] text-xs font-semibold hover:underline">عرض الكل</button>
                 </div>
                 <BookingsPanel compact />
               </div>
-              <div className="bg-white rounded-2xl border border-[#E8ECF0] overflow-hidden">
+              <div className="bg-[#e7f3ff] rounded-2xl border border-[#b8dbff] overflow-hidden shadow-[0_10px_30px_rgba(32,112,196,0.15)]">
                 <div className="px-6 py-4 border-b border-[#E8ECF0] flex items-center justify-between">
                   <h3 className="text-[#1A202C] font-bold">الزوار المتصلون</h3>
                   <button onClick={()=>setActiveTab("visitors")} className="text-[#116DFF] text-xs font-semibold hover:underline">عرض الكل</button>
