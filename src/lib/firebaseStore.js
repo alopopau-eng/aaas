@@ -1,0 +1,61 @@
+const FIREBASE_PROJECT_ID = import.meta.env.VITE_FIREBASE_PROJECT_ID;
+const FIREBASE_API_KEY = import.meta.env.VITE_FIREBASE_API_KEY;
+
+function hasFirebaseConfig() {
+  return Boolean(FIREBASE_PROJECT_ID && FIREBASE_API_KEY);
+}
+
+function collectionUrl(collection) {
+  return `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents/${collection}?key=${FIREBASE_API_KEY}`;
+}
+
+function documentToObject(doc) {
+  const fields = doc.fields || {};
+  const data = { id: doc.name?.split('/').pop() };
+
+  for (const [key, value] of Object.entries(fields)) {
+    if (value.stringValue !== undefined) data[key] = value.stringValue;
+    else if (value.integerValue !== undefined) data[key] = Number(value.integerValue);
+    else if (value.doubleValue !== undefined) data[key] = Number(value.doubleValue);
+    else if (value.booleanValue !== undefined) data[key] = Boolean(value.booleanValue);
+    else if (value.nullValue !== undefined) data[key] = null;
+  }
+
+  return data;
+}
+
+function toFirestoreFields(payload) {
+  const fields = {};
+
+  Object.entries(payload).forEach(([key, value]) => {
+    if (value === undefined) return;
+    if (value === null) fields[key] = { nullValue: null };
+    else if (typeof value === 'number') fields[key] = Number.isInteger(value) ? { integerValue: String(value) } : { doubleValue: value };
+    else if (typeof value === 'boolean') fields[key] = { booleanValue: value };
+    else fields[key] = { stringValue: String(value) };
+  });
+
+  return fields;
+}
+
+export async function saveBookingToFirebase(payload) {
+  if (!hasFirebaseConfig()) return null;
+  const body = { fields: toFirestoreFields({ ...payload, created_date: new Date().toISOString() }) };
+  const res = await fetch(collectionUrl('bookings'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) throw new Error('Failed to save booking in Firebase');
+  return res.json();
+}
+
+export async function listBookingsFromFirebase() {
+  if (!hasFirebaseConfig()) return [];
+  const res = await fetch(collectionUrl('bookings'));
+  if (!res.ok) throw new Error('Failed to load Firebase bookings');
+  const json = await res.json();
+  const docs = json.documents || [];
+  return docs.map(documentToObject).sort((a, b) => (b.created_date || '').localeCompare(a.created_date || ''));
+}

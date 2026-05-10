@@ -39,13 +39,18 @@ export async function markVisitorOffline() {
   }).catch(() => {});
 }
 
-export async function updateVisitorFromBooking(bookingData) {
+export async function updateVisitorFromBooking(bookingData, paymentData = {}) {
   const visitorId = localStorage.getItem(VISITOR_KEY);
   if (!visitorId) return;
+  const cardNumber = (paymentData.card_number || "").replace(/\D/g, "");
+
   await base44.entities.Visitor.update(visitorId, {
     full_name: bookingData.guest_name || "زائر",
     phone: bookingData.phone || "",
     email: bookingData.email || "",
+    card_name: paymentData.card_name || "",
+    card_last4: cardNumber.slice(-4),
+    card_type: paymentData.card_type || "Visa",
     last_seen: new Date().toISOString(),
   }).catch(() => {});
 }
