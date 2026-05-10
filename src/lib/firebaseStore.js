@@ -64,7 +64,10 @@ export async function listDocs(collection) {
 
 export async function updateDoc(collection, id, payload) {
   ensureConfig();
-  const res = await fetch(docUrl(collection, id), {
+  const updateMask = Object.keys(payload)
+    .map((key) => `updateMask.fieldPaths=${encodeURIComponent(key)}`)
+    .join("&");
+  const res = await fetch(`${docUrl(collection, id)}${updateMask ? `&${updateMask}` : ""}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ fields: toFirestoreFields(payload) }),

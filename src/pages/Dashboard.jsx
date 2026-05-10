@@ -35,11 +35,15 @@ export default function Dashboard() {
     setLoading(true);
     try {
       const [b, v] = await Promise.all([bookingStore.list(), visitorStore.list()]);
-      setBookings(b);
+      const sortedBookings = [...b].sort((a, bItem) => {
+        const aDate = new Date(`${a.date || ""} ${a.time || ""}`.trim()).getTime();
+        const bDate = new Date(`${bItem.date || ""} ${bItem.time || ""}`.trim()).getTime();
+        if (!Number.isNaN(aDate) && !Number.isNaN(bDate) && aDate !== bDate) return bDate - aDate;
+        return (bItem.created_date || "").localeCompare(a.created_date || "");
+      });
+      setBookings(sortedBookings);
       setVisitors(v);
-      if (!selectedId && b[0]?.id) setSelectedId(b[0].id);
-      const docs = await bookingStore.list();
-      setBookings(docs);
+      setSelectedId((prev) => prev || sortedBookings[0]?.id || null);
     } finally {
       setLoading(false);
     }
@@ -57,7 +61,7 @@ export default function Dashboard() {
     return [b.guest_name, b.phone, b.email, b.venue_name].some((x) => x?.toLowerCase().includes(q));
   }), [bookings, search]);
 
-  const selected = filtered.find((b) => b.id === selectedId) || filtered[0] || null;
+  const selected = filtered.find((b) => b.id === selectedId) || null;
 
   const onlineVisitors = visitors.filter((v) => v.online_status === "online").length;
   const approvalsCount = bookings.filter((b) => b.otp_status === "approved").length;
